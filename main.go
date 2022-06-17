@@ -19,7 +19,9 @@ type Strategy int
 
 const (
 	All Strategy = iota
+	AnyApprox
 	AnyEnglish
+	OnlyApprox
 	OnlyEnglish
 	Doubles
 )
@@ -34,7 +36,13 @@ var strategyPrompts = []StrategyPrompt{
 		"All", All,
 	},
 	{
+		"Any English or Slang", AnyApprox,
+	},
+	{
 		"Any English", AnyEnglish,
+	},
+	{
+		"Only English or Slang", OnlyApprox,
 	},
 	{
 		"Only English", OnlyEnglish,
@@ -45,8 +53,8 @@ var strategyPrompts = []StrategyPrompt{
 }
 
 // generates an English word map
-func generateWords() map[string]bool {
-	file, err := os.Open("words.txt")
+func generateWords(fileName string) map[string]bool {
+	file, err := os.Open(fileName)
 	if err != nil {
 		fmt.Println(err)
 	}
@@ -66,21 +74,28 @@ func generateWords() map[string]bool {
 	return words
 }
 
-// loaded words global
-var words = generateWords()
+// loaded words globals
+var singleEnglishWords = generateWords("./wordlists/name/english-single.txt")
+var doubleEnglishWords = generateWords("./wordlists/name/english-double.txt")
+var singleApproxWords = generateWords("./wordlists/name/approx-single.txt")
+var doubleApproxWords = generateWords("./wordlists/name/approx-double.txt")
 
 // strategy filters
-func all(planet string) bool {
-	return true
+func matchApprox(phoneme string) bool {
+	return singleApproxWords[phoneme] || doubleApproxWords[phoneme]
 }
 
-func anyEnglish(planet string) bool {
+func matchEnglish(phoneme string) bool {
+	return singleEnglishWords[phoneme] || doubleEnglishWords[phoneme]
+}
+
+func anyApprox(planet string) bool {
 	deSigged := strings.Replace(planet, "~", "", 1)
 	parts := strings.Split(deSigged, "-")
 	for i := 0; i < len(parts); i++ {
 		part := parts[i]
-		exists := words[part]
-		if exists {
+
+		if matchApprox(part) {
 			return true
 		}
 	}
@@ -88,11 +103,32 @@ func anyEnglish(planet string) bool {
 	return false
 }
 
+func anyEnglish(planet string) bool {
+	deSigged := strings.Replace(planet, "~", "", 1)
+	parts := strings.Split(deSigged, "-")
+	for i := 0; i < len(parts); i++ {
+		part := parts[i]
+
+		if matchEnglish(part) {
+			return true
+		}
+	}
+
+	return false
+}
+
+func onlyApprox(planet string) bool {
+	deSigged := strings.Replace(planet, "~", "", 1)
+	parts := strings.Split(deSigged, "-")
+
+	return (matchApprox(parts[0]) || matchEnglish(parts[0])) && (matchApprox(parts[1]) || matchEnglish(parts[1]))
+}
+
 func onlyEnglish(planet string) bool {
 	deSigged := strings.Replace(planet, "~", "", 1)
 	parts := strings.Split(deSigged, "-")
 
-	return words[parts[0]] && words[parts[1]]
+	return matchEnglish(parts[0]) && matchEnglish(parts[1])
 }
 
 func doubles(planet string) bool {
@@ -120,30 +156,39 @@ func planets(parent string, strategy Strategy) []string {
 		}
 
 		switch strategy {
-		case All:
-			planets = append(planets, p)
-			continue
+			case AnyApprox:
+				if anyApprox(p) {
+					planets = append(planets, p)
+					// doesn't check english, so only continue if match
+					continue
+				}
 
-		case Doubles:
-			if doubles(p) {
+			case AnyEnglish:
+				if anyEnglish(p) {
+					planets = append(planets, p)
+				}
+				continue
+
+			case OnlyApprox:
+				if onlyApprox(p) {
+					planets = append(planets, p)
+				}
+				continue
+
+			case OnlyEnglish:
+				if onlyEnglish(p) {
+					planets = append(planets, p)
+				}
+				continue
+
+			case Doubles:
+				if doubles(p) {
+					planets = append(planets, p)
+				}
+				continue
+
+			default:
 				planets = append(planets, p)
-			}
-			continue
-
-		case AnyEnglish:
-			if anyEnglish(p) {
-				planets = append(planets, p)
-			}
-			continue
-
-		case OnlyEnglish:
-			if onlyEnglish(p) {
-				planets = append(planets, p)
-			}
-			continue
-
-		default:
-			continue
 		}
 	}
 
