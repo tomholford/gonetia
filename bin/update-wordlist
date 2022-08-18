@@ -1,0 +1,5 @@
+#!/usr/bin/env sh
+# This script updates the wordlist from ashelkovnykov/urbit-wordlists
+
+git submodule foreach git pull origin master
+
