@@ -12,9 +12,18 @@ This project requires go 1.18+. One option is to use [gvm](https://github.com/mo
 1. Clone this repo
 2. `git submodule update --init --recursive`
 3. `go run main.go`
-4. Enter a star in patp format (e.g., `~marzod`), and select a strategy
+4. Enter a star in patp format (e.g., `~marzod`)
 
-Output is written to `./planets.txt`.
+The script will use various strategies to filter the list:
+```
+AnyEnglish - either phoneme is an English word (e.g., ~datder-sonnet)
+OnlyEnglish - both phonemes are English words (e.g., ~hindus-hostel)
+AnyApprox - either phoneme is an approximate English word (e.g., ~watbud-fitnes)
+OnlyApprox - both phonemes are an approximate English word (e.g., ~watbud-fitnes)
+Doubles - both phonemes are identical (e.g., ~datnut-datnut)
+```
+
+Output for each is written to `./[star]/[strategy]_planets.txt`, for 5 total files per run.
 
 ## Special Thanks
 

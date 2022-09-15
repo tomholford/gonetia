@@ -4,14 +4,13 @@ import (
 	"bufio"
 	"errors"
 	"fmt"
+	"github.com/deelawn/urbit-gob/co"
+	"github.com/manifoldco/promptui"
 	"io/ioutil"
 	"os"
 	"sort"
 	"strconv"
 	"strings"
-
-	"github.com/deelawn/urbit-gob/co"
-	"github.com/manifoldco/promptui"
 )
 
 // available strategies
@@ -139,7 +138,9 @@ func doubles(planet string) bool {
 }
 
 // generates list of planets under parent
-func planets(parent string, strategy Strategy) []string {
+func makePlanets(parent string) []string {
+	fmt.Sprintf("Making planet list for %s ...\n", parent)
+
 	hex, err := co.Patq2Hex(parent)
 	if err != nil {
 		fmt.Println(err)
@@ -155,41 +156,7 @@ func planets(parent string, strategy Strategy) []string {
 			fmt.Println(err)
 		}
 
-		switch strategy {
-			case AnyApprox:
-				if anyApprox(p) {
-					planets = append(planets, p)
-					// doesn't check english, so only continue if match
-					continue
-				}
-
-			case AnyEnglish:
-				if anyEnglish(p) {
-					planets = append(planets, p)
-				}
-				continue
-
-			case OnlyApprox:
-				if onlyApprox(p) {
-					planets = append(planets, p)
-				}
-				continue
-
-			case OnlyEnglish:
-				if onlyEnglish(p) {
-					planets = append(planets, p)
-				}
-				continue
-
-			case Doubles:
-				if doubles(p) {
-					planets = append(planets, p)
-				}
-				continue
-
-			default:
-				planets = append(planets, p)
-		}
+		planets = append(planets, p)
 	}
 
 	sort.Slice(planets, func(i, j int) bool {
@@ -197,6 +164,52 @@ func planets(parent string, strategy Strategy) []string {
 	})
 
 	return planets
+}
+
+func filterPlanets(planets []string, strategy Strategy) []string {
+	var output = make([]string, 0)
+
+	for i := 1; i < len(planets); i++ {
+		p := planets[i]
+
+		switch strategy {
+		case AnyApprox:
+			if anyApprox(p) {
+				output = append(output, p)
+				// doesn't check english, so only continue if match
+				continue
+			}
+
+		case AnyEnglish:
+			if anyEnglish(p) {
+				output = append(output, p)
+			}
+			continue
+
+		case OnlyApprox:
+			if onlyApprox(p) {
+				output = append(output, p)
+			}
+			continue
+
+		case OnlyEnglish:
+			if onlyEnglish(p) {
+				output = append(output, p)
+			}
+			continue
+
+		case Doubles:
+			if doubles(p) {
+				output = append(output, p)
+			}
+			continue
+
+		default:
+			output = append(output, p)
+		}
+	}
+
+	return output
 }
 
 // input validation
@@ -216,6 +229,15 @@ func validate(input string) error {
 	return nil
 }
 
+func writeResults(parent string, strategy string, results []string) error {
+	fmt.Sprintf("Writing output for %s ...\n", strategy)
+
+	pbytes := strings.Join(results, "\n")
+	ioutil.WriteFile(fmt.Sprintf("./%s/%s_planets.txt", parent, strategy), []byte(pbytes), 0755)
+
+	return nil
+}
+
 func main() {
 	// prompt for parent
 	parentPrompt := promptui.Prompt{
@@ -230,25 +252,25 @@ func main() {
 		return
 	}
 
-	// prompt for strategy
-	strategyPrompt := promptui.Select{
-		Label: "Which set of planets?",
-		Items: strategyPrompts,
-	}
-
-	k, _, err := strategyPrompt.Run()
-
-	if err != nil {
-		fmt.Printf("selection failed: %v\n", err)
-		return
-	}
-
 	// find planets
-	results := planets(parent, strategyPrompts[k].strategy)
+	planets := makePlanets(parent)
+
+	// filter for each strategy
+	anyApproxPlanets := filterPlanets(planets, AnyApprox)
+	onlyApproxPlanets := filterPlanets(planets, OnlyApprox)
+	anyEnglishPlanets := filterPlanets(planets, AnyEnglish)
+	onlyEnglishPlanets := filterPlanets(planets, OnlyEnglish)
+	doublesPlanets := filterPlanets(planets, Doubles)
 
 	// write output
-	pbytes := strings.Join(results, "\n")
-	ioutil.WriteFile(fmt.Sprintf("./%s_planets.txt", parent), []byte(pbytes), 0600)
+	deSiggedParent := strings.Replace(parent, "~", "", 1)
+	os.Mkdir(fmt.Sprintf("./%s", deSiggedParent), 0755)
+
+	writeResults(deSiggedParent, "any_approx", anyApproxPlanets)
+	writeResults(deSiggedParent, "only_approx", onlyApproxPlanets)
+	writeResults(deSiggedParent, "any_english", anyEnglishPlanets)
+	writeResults(deSiggedParent, "only_english", onlyEnglishPlanets)
+	writeResults(deSiggedParent, "doubles", doublesPlanets)
 
 	fmt.Println("Done :)")
 }
