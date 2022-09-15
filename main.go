@@ -248,7 +248,7 @@ func main() {
 
 	// write output
 	pbytes := strings.Join(results, "\n")
-	ioutil.WriteFile("planets.txt", []byte(pbytes), 0600)
+	ioutil.WriteFile(fmt.Sprintf("./%s_planets.txt", parent), []byte(pbytes), 0600)
 
 	fmt.Println("Done :)")
 }
