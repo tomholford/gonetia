@@ -243,17 +243,32 @@ func writeResults(parent string, strategy string, results []string) error {
 }
 
 func main() {
-	// prompt for parent
-	parentPrompt := promptui.Prompt{
-		Label:    "Which star? (e.g., ~marzod)",
-		Validate: validate,
+	var parent string
+
+	// get input from args...
+	argLength := len(os.Args[1:])
+	if argLength > 0 {
+		arg := os.Args[1]
+		aErr := validate(arg)
+		if aErr == nil {
+			parent = arg
+		}
 	}
 
-	parent, err := parentPrompt.Run()
+	// ... or prompt for parent
+	if parent == "" {
+		parentPrompt := promptui.Prompt{
+			Label:    "Which star? (e.g., ~marzod)",
+			Validate: validate,
+		}
 
-	if err != nil {
-		fmt.Printf("bad input: %v\n", err)
-		return
+		var pErr error
+		parent, pErr = parentPrompt.Run()
+
+		if pErr != nil {
+			fmt.Printf("bad input: %v\n", pErr)
+			return
+		}
 	}
 
 	// find planets
@@ -269,12 +284,12 @@ func main() {
 	// write output
 	_, oErr := os.Stat("output")
 	if os.IsNotExist(oErr) {
-			os.Mkdir("./output", 0755)
+		os.Mkdir("./output", 0755)
 	}
 	deSiggedParent := strings.Replace(parent, "~", "", 1)
 	e := os.Mkdir(fmt.Sprintf("./output/%s", deSiggedParent), 0755)
 	if e != nil {
-		fmt.Println(err)
+		fmt.Println(e)
 	}
 
 	writeResults(deSiggedParent, "any_approx", anyApproxPlanets)
