@@ -5,25 +5,45 @@ issuable from an Urbit star. It is inspired by
 [Venetia](https://github.com/tylershuster/venetia), but written in Go instead
 of JS.
 
-## Usage
+## Setup
 
 This project requires go 1.18+. One option is to use [gvm](https://github.com/moovweb/gvm).
 
 1. Clone this repo
 2. `git submodule update --init --recursive`
-3. `go run main.go`
-4. Enter a star in patp format (e.g., `~marzod`)
+3. `go build`
+
+## Usage
+
+Enter a star in patp format (e.g., `~marzod`) either as a command line argument, or in response to the interactive prompt.
+
+### Command Line Argument
+
+```
+./gonetia "~marzod"
+```
+
+### Interactive Mode
+
+```sh
+./gonetia
+
+# Enter a star in patp format
+>Which star? (e.g., ~marzod):
+
+~marzod
+```
 
 The script will use various strategies to filter the list:
 ```
 AnyEnglish - either phoneme is an English word (e.g., ~datder-sonnet)
 OnlyEnglish - both phonemes are English words (e.g., ~hindus-hostel)
 AnyApprox - either phoneme is an approximate English word (e.g., ~watbud-fitnes)
-OnlyApprox - both phonemes are an approximate English word (e.g., ~watbud-fitnes)
+OnlyApprox - both phonemes are an approximate English word (e.g., ~filler-tortus)
 Doubles - both phonemes are identical (e.g., ~datnut-datnut)
 ```
 
-Output for each is written to `./[star]/[strategy]_planets.txt`, for 5 total files per run.
+Output for each is written to `./output/[star]/[strategy]_planets.txt`, for 5 total files per run.
 
 ## Special Thanks
 
