@@ -233,7 +233,11 @@ func writeResults(parent string, strategy string, results []string) error {
 	fmt.Sprintf("Writing output for %s ...\n", strategy)
 
 	pbytes := strings.Join(results, "\n")
-	ioutil.WriteFile(fmt.Sprintf("./%s/%s_planets.txt", parent, strategy), []byte(pbytes), 0755)
+	err := ioutil.WriteFile(fmt.Sprintf("./output/%s/%s_planets.txt", parent, strategy), []byte(pbytes), 0755)
+
+	if err != nil {
+		fmt.Println(err)
+	}
 
 	return nil
 }
@@ -263,8 +267,15 @@ func main() {
 	doublesPlanets := filterPlanets(planets, Doubles)
 
 	// write output
+	_, oErr := os.Stat("output")
+	if os.IsNotExist(oErr) {
+			os.Mkdir("./output", 0755)
+	}
 	deSiggedParent := strings.Replace(parent, "~", "", 1)
-	os.Mkdir(fmt.Sprintf("./%s", deSiggedParent), 0755)
+	e := os.Mkdir(fmt.Sprintf("./output/%s", deSiggedParent), 0755)
+	if e != nil {
+		fmt.Println(err)
+	}
 
 	writeResults(deSiggedParent, "any_approx", anyApproxPlanets)
 	writeResults(deSiggedParent, "only_approx", onlyApproxPlanets)
