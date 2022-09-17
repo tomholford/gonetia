@@ -5,6 +5,10 @@ issuable from an Urbit star. It is inspired by
 [Venetia](https://github.com/tylershuster/venetia), but written in Go instead
 of JS.
 
+## Preview
+
+https://user-images.githubusercontent.com/16504501/190836787-212afe87-b2f9-4352-a552-0cadff6b1338.mp4
+
 ## Setup
 
 This project requires go 1.18+. One option is to use [gvm](https://github.com/moovweb/gvm).
