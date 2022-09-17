@@ -11,7 +11,15 @@ https://user-images.githubusercontent.com/16504501/190836787-212afe87-b2f9-4352-
 
 ## Setup
 
-This project requires go 1.18+. One option is to use [gvm](https://github.com/moovweb/gvm).
+### Prerequisites
+
+This project requires Go 1.18+. One option is to use [gvm](https://github.com/moovweb/gvm). Alternatively, on MacOS it is simple to install Go with [homebrew](https://brew.sh/).
+
+Once `brew` is installed, install Go like so:
+```
+brew install go
+```
+### Instructions
 
 1. Clone this repo
 2. `git submodule update --init --recursive`
