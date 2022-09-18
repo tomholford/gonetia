@@ -46,14 +46,18 @@ Enter a star in patp format (e.g., `~marzod`) either as a command line argument,
 ~marzod
 ```
 
-The script will use various strategies to filter the list:
-```
-AnyEnglish - either phoneme is an English word (e.g., ~datder-sonnet)
-OnlyEnglish - both phonemes are English words (e.g., ~hindus-hostel)
-AnyApprox - either phoneme is an approximate English word (e.g., ~watbud-fitnes)
-OnlyApprox - both phonemes are an approximate English word (e.g., ~filler-tortus)
-Doubles - both phonemes are identical (e.g., ~datnut-datnut)
-```
+### Output
+
+A [planet](https://developers.urbit.org/reference/glossary/planet) identity is a four-syllable name composed of two six-character segments, such as `~sampel-palnet`. 
+
+The script uses [urbit-wordlists](https://github.com/ashelkovnykov/urbit-wordlists) and  various strategies to generate output:
+
+- *AnyEnglish*: at least one segment matches `wordlists/name/english-single` or `wordlists/name/english-double`.
+- *OnlyEnglish*: both segments match `wordlists/name/english-single` or `wordlists/name/english-double`.
+- *AnyApprox*:  at least one segment matches `wordlists/name/approx-single` or `wordlists/name/approx-double`.
+- *OnlyApprox*:  both segments match any of the wordlists.
+- *Doubles*: both segments are identical (e.g., ~datnut-datnut)
+
 
 Output for each is written to `./output/[star]/[strategy]_planets.txt`, for 5 total files per run.
 
@@ -62,3 +66,4 @@ Output for each is written to `./output/[star]/[strategy]_planets.txt`, for 5 to
 - Thanks to @tylershuster for creating [Venetia](https://github.com/tylershuster/venetia)
 - Thanks to @deelawn for creating [urbit-gob](https://github.com/deelawn/urbit-gob)
 - Thanks to @ashelkovnykov for creating [urbit-wordlists](https://github.com/ashelkovnykov/urbit-wordlists)
+- Thanks to @michelleylai for feature ideas, feedback, testing, and proofreading docs
