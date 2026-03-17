@@ -23,6 +23,7 @@ const (
 	OnlyApprox
 	OnlyEnglish
 	Doubles
+	Alliteration
 )
 
 type StrategyPrompt struct {
@@ -48,6 +49,9 @@ var strategyPrompts = []StrategyPrompt{
 	},
 	{
 		"Doubles", Doubles,
+	},
+	{
+		"Alliteration", Alliteration,
 	},
 }
 
@@ -137,6 +141,13 @@ func doubles(planet string) bool {
 	return parts[0] == parts[1]
 }
 
+func alliteration(planet string) bool {
+	deSigged := strings.Replace(planet, "~", "", 1)
+	parts := strings.Split(deSigged, "-")
+
+	return parts[0][0] == parts[1][0]
+}
+
 // generates list of planets under parent
 func makePlanets(parent string) []string {
 	fmt.Sprintf("Making planet list for %s ...\n", parent)
@@ -200,6 +211,12 @@ func filterPlanets(planets []string, strategy Strategy) []string {
 
 		case Doubles:
 			if doubles(p) {
+				output = append(output, p)
+			}
+			continue
+
+		case Alliteration:
+			if alliteration(p) {
 				output = append(output, p)
 			}
 			continue
@@ -280,6 +297,7 @@ func main() {
 	anyEnglishPlanets := filterPlanets(planets, AnyEnglish)
 	onlyEnglishPlanets := filterPlanets(planets, OnlyEnglish)
 	doublesPlanets := filterPlanets(planets, Doubles)
+	alliterationPlanets := filterPlanets(planets, Alliteration)
 
 	// write output
 	_, oErr := os.Stat("output")
@@ -297,6 +315,7 @@ func main() {
 	writeResults(deSiggedParent, "any_english", anyEnglishPlanets)
 	writeResults(deSiggedParent, "only_english", onlyEnglishPlanets)
 	writeResults(deSiggedParent, "doubles", doublesPlanets)
+	writeResults(deSiggedParent, "alliteration", alliterationPlanets)
 
 	fmt.Println("Done :)")
 }
