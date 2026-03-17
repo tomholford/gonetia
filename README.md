@@ -57,9 +57,10 @@ The script uses [urbit-wordlists](https://github.com/ashelkovnykov/urbit-wordlis
 - *AnyApprox*:  at least one segment matches `wordlists/name/approx-single` or `wordlists/name/approx-double`.
 - *OnlyApprox*:  both segments match any of the wordlists.
 - *Doubles*: both segments are identical (e.g., ~datnut-datnut)
+- *Alliteration*: both segments start with the same letter (e.g., ~bacbel-baldut)
 
 
-Output for each is written to `./output/[star]/[strategy]_planets.txt`, for 5 total files per run.
+Output for each is written to `./output/[star]/[strategy]_planets.txt`, for 6 total files per run.
 
 ## Special Thanks
 
