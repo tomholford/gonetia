@@ -1,0 +1,80 @@
+# yaml-language-server: $schema=https://goreleaser.com/static/schema.json
+version: 2
+
+project_name: gonetia
+
+builds:
+  - id: gonetia
+    main: .
+    binary: gonetia
+    env:
+      - CGO_ENABLED=0
+    goos:
+      - darwin
+      - linux
+      - windows
+    goarch:
+      - amd64
+      - arm64
+    ldflags:
+      - -s -w -X main.Version={{.Version}}
+
+archives:
+  - id: default
+    formats: [tar.gz]
+    name_template: "{{ .ProjectName }}_{{ .Version }}_{{ .Os }}_{{ .Arch }}"
+    format_overrides:
+      - goos: windows
+        formats: [zip]
+    files:
+      - LICENSE
+      - README.md
+
+checksum:
+  name_template: checksums.txt
+
+snapshot:
+  version_template: "{{ incpatch .Version }}-next-{{ .ShortCommit }}"
+
+changelog:
+  sort: asc
+  use: git
+  filters:
+    exclude:
+      - "^docs:"
+      - "^test:"
+      - "^chore:"
+      - "^ci:"
+
+release:
+  github:
+    owner: tomholford
+    name: gonetia
+  prerelease: auto
+  # Partial publishes (e.g. GitHub Release ok, Homebrew failed) can be retried.
+  mode: replace
+
+# Prebuilt binaries belong in a cask (Homebrew formulas build from source).
+# Unsigned macOS binaries are quarantined; the post-install hook strips that
+# so first launch is not "damaged and cannot be opened" on Apple Silicon.
+homebrew_casks:
+  - name: gonetia
+    ids:
+      - default
+    binaries:
+      - gonetia
+    repository:
+      owner: tomholford
+      name: homebrew-tap
+      # GoReleaser requires this exact form (no `with`/`index` wrappers).
+      token: "{{ .Env.HOMEBREW_TAP_TOKEN }}"
+    directory: Casks
+    homepage: "https://github.com/tomholford/gonetia"
+    description: "Generate Urbit planet names issuable from a star"
+    skip_upload: auto
+    hooks:
+      post:
+        install: |
+          if OS.mac?
+            system_command "/usr/bin/xattr", args: ["-dr", "com.apple.quarantine", "#{staged_path}/gonetia"]
+          end
