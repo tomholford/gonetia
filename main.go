@@ -2,6 +2,7 @@ package main
 
 import (
 	"bufio"
+	"embed"
 	"errors"
 	"fmt"
 	"os"
@@ -12,6 +13,9 @@ import (
 	"github.com/deelawn/urbit-gob/co"
 	"github.com/manifoldco/promptui"
 )
+
+//go:embed wordlists/name/*.txt
+var wordlistFS embed.FS
 
 // Strategy selects which wordlist filter to apply.
 type Strategy int
@@ -26,36 +30,55 @@ const (
 	Alliteration
 )
 
-func generateWords(fileName string) map[string]bool {
-	file, err := os.Open(fileName)
-	if err != nil {
-		fmt.Fprintln(os.Stderr, err)
-		os.Exit(1)
-	}
+var (
+	singleEnglishWords map[string]bool
+	doubleEnglishWords map[string]bool
+	singleApproxWords  map[string]bool
+	doubleApproxWords  map[string]bool
+)
 
-	words := make(map[string]bool)
-	scanner := bufio.NewScanner(file)
+func generateWords(name string) (words map[string]bool, err error) {
+	f, err := wordlistFS.Open(name)
+	if err != nil {
+		return nil, fmt.Errorf("open wordlist %s: %w", name, err)
+	}
+	defer func() {
+		if cerr := f.Close(); err == nil && cerr != nil {
+			err = fmt.Errorf("close wordlist %s: %w", name, cerr)
+		}
+	}()
+
+	words = make(map[string]bool)
+	scanner := bufio.NewScanner(f)
 	for scanner.Scan() {
 		words[scanner.Text()] = true
 	}
-
-	err = scanner.Err()
-	if closeErr := file.Close(); err == nil {
-		err = closeErr
+	if scanErr := scanner.Err(); scanErr != nil {
+		return nil, fmt.Errorf("read wordlist %s: %w", name, scanErr)
 	}
-	if err != nil {
-		fmt.Fprintln(os.Stderr, err)
-		os.Exit(1)
-	}
-
-	return words
+	return words, nil
 }
 
-// loaded words globals
-var singleEnglishWords = generateWords("./wordlists/name/english-single.txt")
-var doubleEnglishWords = generateWords("./wordlists/name/english-double.txt")
-var singleApproxWords = generateWords("./wordlists/name/approx-single.txt")
-var doubleApproxWords = generateWords("./wordlists/name/approx-double.txt")
+func loadWordlists() error {
+	var err error
+	singleEnglishWords, err = generateWords("wordlists/name/english-single.txt")
+	if err != nil {
+		return err
+	}
+	doubleEnglishWords, err = generateWords("wordlists/name/english-double.txt")
+	if err != nil {
+		return err
+	}
+	singleApproxWords, err = generateWords("wordlists/name/approx-single.txt")
+	if err != nil {
+		return err
+	}
+	doubleApproxWords, err = generateWords("wordlists/name/approx-double.txt")
+	if err != nil {
+		return err
+	}
+	return nil
+}
 
 func matchApprox(phoneme string) bool {
 	return singleApproxWords[phoneme] || doubleApproxWords[phoneme]
@@ -208,6 +231,11 @@ func writeResults(parent string, strategy string, results []string) error {
 }
 
 func main() {
+	if err := loadWordlists(); err != nil {
+		fmt.Fprintf(os.Stderr, "%v\n", err)
+		os.Exit(1)
+	}
+
 	var parent string
 
 	argLength := len(os.Args[1:])
