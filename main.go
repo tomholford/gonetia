@@ -2,18 +2,25 @@ package main
 
 import (
 	"bufio"
+	"embed"
 	"errors"
 	"fmt"
-	"github.com/deelawn/urbit-gob/co"
-	"github.com/manifoldco/promptui"
-	"io/ioutil"
 	"os"
 	"sort"
 	"strconv"
 	"strings"
+
+	"github.com/deelawn/urbit-gob/co"
+	"github.com/manifoldco/promptui"
 )
 
-// available strategies
+//go:embed wordlists/name/*.txt
+var wordlistFS embed.FS
+
+// Version is set at build time via -ldflags.
+var Version = "dev"
+
+// Strategy selects which wordlist filter to apply.
 type Strategy int
 
 const (
@@ -26,64 +33,56 @@ const (
 	Alliteration
 )
 
-type StrategyPrompt struct {
-	name     string
-	strategy Strategy
-}
+var (
+	singleEnglishWords map[string]bool
+	doubleEnglishWords map[string]bool
+	singleApproxWords  map[string]bool
+	doubleApproxWords  map[string]bool
+)
 
-var strategyPrompts = []StrategyPrompt{
-	{
-		"All", All,
-	},
-	{
-		"Any English or Slang", AnyApprox,
-	},
-	{
-		"Any English", AnyEnglish,
-	},
-	{
-		"Only English or Slang", OnlyApprox,
-	},
-	{
-		"Only English", OnlyEnglish,
-	},
-	{
-		"Doubles", Doubles,
-	},
-	{
-		"Alliteration", Alliteration,
-	},
-}
-
-// generates an English word map
-func generateWords(fileName string) map[string]bool {
-	file, err := os.Open(fileName)
+func generateWords(name string) (words map[string]bool, err error) {
+	f, err := wordlistFS.Open(name)
 	if err != nil {
-		fmt.Println(err)
+		return nil, fmt.Errorf("open wordlist %s: %w", name, err)
 	}
-	defer file.Close()
+	defer func() {
+		if cerr := f.Close(); err == nil && cerr != nil {
+			err = fmt.Errorf("close wordlist %s: %w", name, cerr)
+		}
+	}()
 
-	var words = make(map[string]bool)
-
-	scanner := bufio.NewScanner(file)
+	words = make(map[string]bool)
+	scanner := bufio.NewScanner(f)
 	for scanner.Scan() {
 		words[scanner.Text()] = true
 	}
-
-	if err := scanner.Err(); err != nil {
-		fmt.Println(err)
+	if scanErr := scanner.Err(); scanErr != nil {
+		return nil, fmt.Errorf("read wordlist %s: %w", name, scanErr)
 	}
-
-	return words
+	return words, nil
 }
 
-// loaded words globals
-var singleEnglishWords = generateWords("./wordlists/name/english-single.txt")
-var doubleEnglishWords = generateWords("./wordlists/name/english-double.txt")
-var singleApproxWords = generateWords("./wordlists/name/approx-single.txt")
-var doubleApproxWords = generateWords("./wordlists/name/approx-double.txt")
+func loadWordlists() error {
+	var err error
+	singleEnglishWords, err = generateWords("wordlists/name/english-single.txt")
+	if err != nil {
+		return err
+	}
+	doubleEnglishWords, err = generateWords("wordlists/name/english-double.txt")
+	if err != nil {
+		return err
+	}
+	singleApproxWords, err = generateWords("wordlists/name/approx-single.txt")
+	if err != nil {
+		return err
+	}
+	doubleApproxWords, err = generateWords("wordlists/name/approx-double.txt")
+	if err != nil {
+		return err
+	}
+	return nil
+}
 
-// strategy filters
 func matchApprox(phoneme string) bool {
 	return singleApproxWords[phoneme] || doubleApproxWords[phoneme]
 }
@@ -148,23 +147,22 @@ func alliteration(planet string) bool {
 	return parts[0][0] == parts[1][0]
 }
 
-// generates list of planets under parent
-func makePlanets(parent string) []string {
-	fmt.Sprintf("Making planet list for %s ...\n", parent)
+func makePlanets(parent string) ([]string, error) {
+	fmt.Printf("Making planet list for %s ...\n", parent)
 
 	hex, err := co.Patq2Hex(parent)
 	if err != nil {
-		fmt.Println(err)
+		return nil, fmt.Errorf("convert star to hex: %w", err)
 	}
 
-	var planets = make([]string, 0)
+	planets := make([]string, 0, 0xFFFF)
 
 	for i := 1; i <= 0xFFFF; i++ {
 		base := strconv.FormatInt(int64(i), 16)
 		s := fmt.Sprintf("%04s", base) + hex
 		p, err := co.Hex2Patp(s)
 		if err != nil {
-			fmt.Println(err)
+			return nil, fmt.Errorf("convert hex to patp: %w", err)
 		}
 
 		planets = append(planets, p)
@@ -174,53 +172,38 @@ func makePlanets(parent string) []string {
 		return planets[i] < planets[j]
 	})
 
-	return planets
+	return planets, nil
 }
 
 func filterPlanets(planets []string, strategy Strategy) []string {
-	var output = make([]string, 0)
+	output := make([]string, 0)
 
-	for i := 1; i < len(planets); i++ {
-		p := planets[i]
-
+	for _, p := range planets {
 		switch strategy {
 		case AnyApprox:
 			if anyApprox(p) {
 				output = append(output, p)
-				// doesn't check english, so only continue if match
-				continue
 			}
-
 		case AnyEnglish:
 			if anyEnglish(p) {
 				output = append(output, p)
 			}
-			continue
-
 		case OnlyApprox:
 			if onlyApprox(p) {
 				output = append(output, p)
 			}
-			continue
-
 		case OnlyEnglish:
 			if onlyEnglish(p) {
 				output = append(output, p)
 			}
-			continue
-
 		case Doubles:
 			if doubles(p) {
 				output = append(output, p)
 			}
-			continue
-
 		case Alliteration:
 			if alliteration(p) {
 				output = append(output, p)
 			}
-			continue
-
 		default:
 			output = append(output, p)
 		}
@@ -229,40 +212,44 @@ func filterPlanets(planets []string, strategy Strategy) []string {
 	return output
 }
 
-// input validation
 func validate(input string) error {
-	// ensure valid patp
 	isValid := co.IsValidPat(input)
 	if !isValid {
-		return errors.New("Invalid patp")
+		return errors.New("invalid patp")
 	}
 
-	// ensure valid size
 	size, err := co.Clan(input)
 	if size != "star" || err != nil {
-		return errors.New("Must be a star")
+		return errors.New("must be a star")
 	}
 
 	return nil
 }
 
 func writeResults(parent string, strategy string, results []string) error {
-	fmt.Sprintf("Writing output for %s ...\n", strategy)
+	fmt.Printf("Writing output for %s ...\n", strategy)
 
-	pbytes := strings.Join(results, "\n")
-	err := ioutil.WriteFile(fmt.Sprintf("./output/%s/%s_planets.txt", parent, strategy), []byte(pbytes), 0755)
+	path := fmt.Sprintf("./output/%s/%s_planets.txt", parent, strategy)
+	return os.WriteFile(path, []byte(strings.Join(results, "\n")), 0o644)
+}
 
-	if err != nil {
-		fmt.Println(err)
-	}
-
-	return nil
+func versionRequested(args []string) bool {
+	return len(args) > 1 && (args[1] == "-version" || args[1] == "--version")
 }
 
 func main() {
+	if versionRequested(os.Args) {
+		fmt.Println(Version)
+		return
+	}
+
+	if err := loadWordlists(); err != nil {
+		fmt.Fprintf(os.Stderr, "%v\n", err)
+		os.Exit(1)
+	}
+
 	var parent string
 
-	// get input from args...
 	argLength := len(os.Args[1:])
 	if argLength > 0 {
 		arg := os.Args[1]
@@ -272,7 +259,6 @@ func main() {
 		}
 	}
 
-	// ... or prompt for parent
 	if parent == "" {
 		parentPrompt := promptui.Prompt{
 			Label:    "Which star? (e.g., ~marzod)",
@@ -283,15 +269,17 @@ func main() {
 		parent, pErr = parentPrompt.Run()
 
 		if pErr != nil {
-			fmt.Printf("bad input: %v\n", pErr)
-			return
+			fmt.Fprintf(os.Stderr, "bad input: %v\n", pErr)
+			os.Exit(1)
 		}
 	}
 
-	// find planets
-	planets := makePlanets(parent)
+	planets, err := makePlanets(parent)
+	if err != nil {
+		fmt.Fprintf(os.Stderr, "%v\n", err)
+		os.Exit(1)
+	}
 
-	// filter for each strategy
 	anyApproxPlanets := filterPlanets(planets, AnyApprox)
 	onlyApproxPlanets := filterPlanets(planets, OnlyApprox)
 	anyEnglishPlanets := filterPlanets(planets, AnyEnglish)
@@ -299,23 +287,29 @@ func main() {
 	doublesPlanets := filterPlanets(planets, Doubles)
 	alliterationPlanets := filterPlanets(planets, Alliteration)
 
-	// write output
-	_, oErr := os.Stat("output")
-	if os.IsNotExist(oErr) {
-		os.Mkdir("./output", 0755)
-	}
 	deSiggedParent := strings.Replace(parent, "~", "", 1)
-	e := os.Mkdir(fmt.Sprintf("./output/%s", deSiggedParent), 0755)
-	if e != nil {
-		fmt.Println(e)
+	if err := os.MkdirAll(fmt.Sprintf("./output/%s", deSiggedParent), 0o755); err != nil {
+		fmt.Fprintf(os.Stderr, "create output dir: %v\n", err)
+		os.Exit(1)
 	}
 
-	writeResults(deSiggedParent, "any_approx", anyApproxPlanets)
-	writeResults(deSiggedParent, "only_approx", onlyApproxPlanets)
-	writeResults(deSiggedParent, "any_english", anyEnglishPlanets)
-	writeResults(deSiggedParent, "only_english", onlyEnglishPlanets)
-	writeResults(deSiggedParent, "doubles", doublesPlanets)
-	writeResults(deSiggedParent, "alliteration", alliterationPlanets)
+	outputs := []struct {
+		name    string
+		planets []string
+	}{
+		{"any_approx", anyApproxPlanets},
+		{"only_approx", onlyApproxPlanets},
+		{"any_english", anyEnglishPlanets},
+		{"only_english", onlyEnglishPlanets},
+		{"doubles", doublesPlanets},
+		{"alliteration", alliterationPlanets},
+	}
+	for _, out := range outputs {
+		if err := writeResults(deSiggedParent, out.name, out.planets); err != nil {
+			fmt.Fprintf(os.Stderr, "write %s: %v\n", out.name, err)
+			os.Exit(1)
+		}
+	}
 
 	fmt.Println("Done :)")
 }

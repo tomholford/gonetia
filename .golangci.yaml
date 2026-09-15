@@ -1,0 +1,58 @@
+version: "2"
+
+linters:
+  default: none
+  enable:
+    # Defaults
+    - errcheck
+    - govet
+    - ineffassign
+    - staticcheck
+    - unused
+
+    # Extras
+    - errorlint
+    - whitespace
+
+  settings:
+    errcheck:
+      check-type-assertions: true
+    errorlint:
+      errorf: true
+      asserts: true
+      comparison: true
+    govet:
+      enable-all: true
+      disable:
+        - fieldalignment
+    staticcheck:
+      checks:
+        - all
+        - -ST1000
+  exclusions:
+    rules:
+      - path: _test.go
+        linters:
+          - errcheck
+    generated: lax
+    paths: []
+
+formatters:
+  enable:
+    - gci
+    - gofmt
+  settings:
+    gci:
+      sections:
+        - standard
+        - default
+        - localmodule
+    gofmt:
+      simplify: true
+  exclusions:
+    generated: lax
+
+issues:
+  max-same-issues: 0
+  max-issues-per-linter: 0
+  uniq-by-line: false

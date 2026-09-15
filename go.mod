@@ -1,6 +1,6 @@
 module tomholford/gonetia
 
-go 1.18
+go 1.26.5
 
 require (
 	github.com/deelawn/urbit-gob v0.1.0
