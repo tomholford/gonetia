@@ -3,7 +3,7 @@ module tomholford/gonetia
 go 1.26.5
 
 require (
-	github.com/deelawn/urbit-gob v0.1.0
+	github.com/deelawn/urbit-gob v1.0.0
 	github.com/manifoldco/promptui v0.9.0
 )
 
