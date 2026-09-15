@@ -53,6 +53,7 @@ release:
   prerelease: auto
   # Partial publishes (e.g. GitHub Release ok, Homebrew failed) can be retried.
   mode: replace
+  replace_existing_artifacts: true
 
 # Prebuilt binaries belong in a cask (Homebrew formulas build from source).
 # Unsigned macOS binaries are quarantined; the post-install hook strips that
