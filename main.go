@@ -17,6 +17,9 @@ import (
 //go:embed wordlists/name/*.txt
 var wordlistFS embed.FS
 
+// Version is set at build time via -ldflags.
+var Version = "dev"
+
 // Strategy selects which wordlist filter to apply.
 type Strategy int
 
@@ -230,7 +233,16 @@ func writeResults(parent string, strategy string, results []string) error {
 	return os.WriteFile(path, []byte(strings.Join(results, "\n")), 0o644)
 }
 
+func versionRequested(args []string) bool {
+	return len(args) > 1 && (args[1] == "-version" || args[1] == "--version")
+}
+
 func main() {
+	if versionRequested(os.Args) {
+		fmt.Println(Version)
+		return
+	}
+
 	if err := loadWordlists(); err != nil {
 		fmt.Fprintf(os.Stderr, "%v\n", err)
 		os.Exit(1)

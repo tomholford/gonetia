@@ -147,6 +147,31 @@ func TestFilterPlanetsStrategies(t *testing.T) {
 	}
 }
 
+func TestVersionRequested(t *testing.T) {
+	t.Parallel()
+
+	if versionRequested([]string{"gonetia"}) {
+		t.Fatal("bare invocation is not a version request")
+	}
+	if !versionRequested([]string{"gonetia", "--version"}) {
+		t.Fatal("expected --version")
+	}
+	if !versionRequested([]string{"gonetia", "-version"}) {
+		t.Fatal("expected -version")
+	}
+	if versionRequested([]string{"gonetia", "~marzod"}) {
+		t.Fatal("a star argument is not a version request")
+	}
+}
+
+func TestVersionDefault(t *testing.T) {
+	t.Parallel()
+
+	if Version != "dev" {
+		t.Fatalf("Version = %q, want dev", Version)
+	}
+}
+
 func TestLoadWordlists(t *testing.T) {
 	if err := loadWordlists(); err != nil {
 		t.Fatal(err)
