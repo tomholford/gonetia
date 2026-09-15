@@ -5,25 +5,32 @@ issuable from an Urbit star. It is inspired by
 [Venetia](https://github.com/tylershuster/venetia), but written in Go instead
 of JS.
 
+[![ci](https://github.com/tomholford/gonetia/actions/workflows/ci.yml/badge.svg)](https://github.com/tomholford/gonetia/actions/workflows/ci.yml)
+
 ## Preview
 
 https://user-images.githubusercontent.com/16504501/190836787-212afe87-b2f9-4352-a552-0cadff6b1338.mp4
 
-## Setup
+## Install
 
-### Prerequisites
+Homebrew (macOS / Linux):
 
-This project requires Go 1.18+. One option is to use [gvm](https://github.com/moovweb/gvm). Alternatively, on MacOS it is simple to install Go with [homebrew](https://brew.sh/).
-
-Once `brew` is installed, install Go like so:
+```sh
+brew install tomholford/tap/gonetia
 ```
-brew install go
-```
-### Instructions
 
-1. Clone this repo
-2. `git submodule update --init --recursive`
-3. `go build`
+Binaries for macOS, Linux, and Windows are on [GitHub Releases](https://github.com/tomholford/gonetia/releases). `gonetia --version` prints the release tag.
+
+From source (Go 1.26+, see `go.mod`):
+
+```sh
+git clone https://github.com/tomholford/gonetia.git
+cd gonetia
+git submodule update --init --recursive
+./ops/build.sh
+```
+
+The binary lands at `./bin/gonetia` (gitignored). Submodules are required at compile time: the four name wordlists are embedded into the binary.
 
 ## Usage
 
@@ -32,13 +39,15 @@ Enter a star in patp format (e.g., `~marzod`) either as a command line argument,
 ### Command Line Argument
 
 ```
-./gonetia "~marzod"
+gonetia "~marzod"
 ```
+
+From a source build, use `./bin/gonetia` instead.
 
 ### Interactive Mode
 
 ```sh
-./gonetia
+gonetia
 
 # Enter a star in patp format
 >Which star? (e.g., ~marzod):
@@ -48,19 +57,22 @@ Enter a star in patp format (e.g., `~marzod`) either as a command line argument,
 
 ### Output
 
-A [planet](https://developers.urbit.org/reference/glossary/planet) identity is a four-syllable name composed of two six-character segments, such as `~sampel-palnet`. 
+A [planet](https://developers.urbit.org/reference/glossary/planet) identity is a four-syllable name composed of two six-character segments, such as `~sampel-palnet`.
 
-The script uses [urbit-wordlists](https://github.com/ashelkovnykov/urbit-wordlists) and  various strategies to generate output:
+The script uses [urbit-wordlists](https://github.com/ashelkovnykov/urbit-wordlists) and various strategies to generate output:
 
 - *AnyEnglish*: at least one segment matches `wordlists/name/english-single` or `wordlists/name/english-double`.
 - *OnlyEnglish*: both segments match `wordlists/name/english-single` or `wordlists/name/english-double`.
-- *AnyApprox*:  at least one segment matches `wordlists/name/approx-single` or `wordlists/name/approx-double`.
-- *OnlyApprox*:  both segments match any of the wordlists.
+- *AnyApprox*: at least one segment matches `wordlists/name/approx-single` or `wordlists/name/approx-double`.
+- *OnlyApprox*: both segments match any of the wordlists.
 - *Doubles*: both segments are identical (e.g., ~datnut-datnut)
 - *Alliteration*: both segments start with the same letter (e.g., ~bacbel-baldut)
 
-
 Output for each is written to `./output/[star]/[strategy]_planets.txt`, for 6 total files per run.
+
+## License
+
+MIT. See [CONTRIBUTING.md](CONTRIBUTING.md) for the local gauntlet and [SECURITY.md](SECURITY.md) to report vulnerabilities.
 
 ## Special Thanks
 
